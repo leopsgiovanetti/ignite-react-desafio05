@@ -38,72 +38,72 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
   const [posts, setPosts] = useState<Post[]>(results);
   const [nextPage, setNextPage] = useState(next_page);
 
-  async function handleNextPage(): {
+  async function handleNextPage() {
     const response = await fetch(nextPage);
-  const newData: PostPagination = await response.json();
+    const newData: PostPagination = await response.json();
 
-  setNextPage(newData.next_page);
+    setNextPage(newData.next_page);
 
-  const newPosts = newData.results.map(post => {
-    return {
-      uid: post.uid,
-      first_publication_date: post.first_publication_date,
-      data: {
-        title: post.data.title,
-        subtitle: post.data.subtitle,
-        author: post.data.author,
-      },
-    };
-  });
+    const newPosts = newData.results.map(post => {
+      return {
+        uid: post.uid,
+        first_publication_date: post.first_publication_date,
+        data: {
+          title: post.data.title,
+          subtitle: post.data.subtitle,
+          author: post.data.author,
+        },
+      };
+    });
 
-  setPosts([...posts, ...newPosts]);
-}
-return (
-  <>
-    <Head>
-      <title>Home</title>
-    </Head>
-    <Header />
-    <main className={commonStyles.container}>
-      <div className={commonStyles.content}>
-        <div className={styles.posts}>
-          {posts.map(post => {
-            return (
-              <Link href={`/post/${post.uid}`} key={post.uid}>
-                <a>
-                  <strong>{post.data.title}</strong>
-                  <p>{post.data.subtitle}</p>
-                  <div>
-                    <span>
-                      <FiCalendar />
-                      <time>
-                        {format(
-                          new Date(post.first_publication_date),
-                          'dd MMM yyyy',
-                          {
-                            locale: ptBR,
-                          }
-                        )}
-                      </time>
-                    </span>
-                    <span>
-                      <FiUser /> {post.data.author}
-                    </span>
-                  </div>
-                </a>
-              </Link>
-            );
-          })}
-          {nextPage && (
-            <button type="button" onClick={handleNextPage}>
-              Carregar mais posts
-            </button>
-          )}
+    setPosts([...posts, ...newPosts]);
+  }
+  return (
+    <>
+      <Head>
+        <title>Home</title>
+      </Head>
+      <Header />
+      <main className={commonStyles.container}>
+        <div className={commonStyles.content}>
+          <div className={styles.posts}>
+            {posts.map(post => {
+              return (
+                <Link href={`/post/${post.uid}`} key={post.uid}>
+                  <a>
+                    <strong>{post.data.title}</strong>
+                    <p>{post.data.subtitle}</p>
+                    <div>
+                      <span>
+                        <FiCalendar />
+                        <time>
+                          {format(
+                            new Date(post.first_publication_date),
+                            'dd MMM yyyy',
+                            {
+                              locale: ptBR,
+                            }
+                          )}
+                        </time>
+                      </span>
+                      <span>
+                        <FiUser /> {post.data.author}
+                      </span>
+                    </div>
+                  </a>
+                </Link>
+              );
+            })}
+            {nextPage && (
+              <button type="button" onClick={handleNextPage}>
+                Carregar mais posts
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
-  </>
-);
+      </main>
+    </>
+  );
 }
 
 export const getStaticProps: GetStaticProps = async () => {
