@@ -1,1 +1,47 @@
-// TODO
+.banner{
+  margin: 1.5rem auto;
+}
+.post{
+  margin-top: 3rem;
+  h1{
+
+    font-size: 3rem;
+    font-weight: bold;
+  }
+  div{
+    margin-top: 1rem;
+    span{
+      color:var(--gray-100);
+      & + span{
+        margin-left: 1.5rem;
+      }
+    }
+  }
+  h2{
+    font-size: 2rem;
+    margin:2.5rem 0;
+  }
+}
+
+.content{
+  p{
+    color:var(--gray-100);
+    & + p{
+      margin-top: 1rem;
+    }
+    & + li{
+      margin-top: 1rem;
+    }
+  }
+  li{
+    color:var(--gray-100);
+    & + p{
+      margin-top: 1rem;
+    }
+    & + li{
+      margin-top: 1rem;
+    }
+  }
+
+
+}
