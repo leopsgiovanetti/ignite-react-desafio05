@@ -31,14 +31,18 @@ interface PostPagination {
 
 interface HomeProps {
   postsPagination: PostPagination;
+  preview: boolean;
 }
 
-export default function Home({ postsPagination }: HomeProps): JSX.Element {
+export default function Home({
+  postsPagination,
+  preview,
+}: HomeProps): JSX.Element {
   const { next_page, results } = postsPagination;
   const [posts, setPosts] = useState<Post[]>(results);
   const [nextPage, setNextPage] = useState(next_page);
 
-  async function handleNextPage() {
+  async function handleNextPage(): Promise<void> {
     const response = await fetch(nextPage);
     const newData: PostPagination = await response.json();
 
@@ -64,6 +68,13 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
         <title>Home</title>
       </Head>
       <Header />
+      {preview && (
+        <aside>
+          <Link href="/api/exit-preview">
+            <a>Sair do modo Preview</a>
+          </Link>
+        </aside>
+      )}
       <main className={commonStyles.container}>
         <div className={commonStyles.content}>
           <div className={styles.posts}>
@@ -106,16 +117,20 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
   );
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps = async ({
+  preview = false,
+  previewData,
+}) => {
   const prismic = getPrismicClient();
   const postsResponse = await prismic.query(
     [Prismic.Predicates.at('document.type', 'posts')],
     {
       pageSize: 1,
+      ref: previewData?.ref ?? null,
     }
   );
 
-  //console.log(JSON.stringify(postsResponse, null, 2));
+  //  console.log(JSON.stringify(postsResponse, null, 2));
 
   const nextPage = postsResponse.next_page;
   const posts = postsResponse.results.map(post => {
@@ -136,6 +151,7 @@ export const getStaticProps: GetStaticProps = async () => {
         next_page: nextPage,
         results: posts,
       },
+      preview,
     },
     revalidate: 60 * 60 * 24, // 24h
   };

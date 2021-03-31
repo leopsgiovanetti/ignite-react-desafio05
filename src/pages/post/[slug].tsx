@@ -10,9 +10,12 @@ import { getPrismicClient } from '../../services/prismic';
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
 import Header from '../../components/Header';
+import Link from 'next/link';
+import { Document } from '@prismicio/client/types/documents';
 
 interface Post {
   first_publication_date: string | null;
+  last_publication_date: string | null;
   data: {
     title: string;
     banner: {
@@ -30,9 +33,17 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  preview: boolean;
+  prevPost: Document | null;
+  nextPost: Document | null;
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({
+  post,
+  preview,
+  prevPost,
+  nextPost,
+}: PostProps): JSX.Element {
   const router = useRouter();
 
   const [timeToRead, setTimeToRead] = useState(0);
@@ -41,7 +52,7 @@ export default function Post({ post }: PostProps): JSX.Element {
     return <div>Carregando...</div>;
   }
 
-  useEffect(() => {
+  function handleTimeToRead(): number {
     const wordsPerMinute = 200;
 
     const words = post?.data?.content?.reduce((totalWords, content) => {
@@ -57,12 +68,37 @@ export default function Post({ post }: PostProps): JSX.Element {
     }, []);
 
     const time = Math.ceil(words.length / wordsPerMinute);
+    return time;
+  }
+
+  function addComments(): void {
+    const script = document.createElement('script');
+    const anchor = document.getElementById('inject-comments-for-uterances');
+    script.setAttribute('src', 'https://utteranc.es/client.js');
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('async', 'true');
+    script.setAttribute('repo', 'leopsgiovanetti/space-travel-comments');
+    script.setAttribute('issue-term', 'pathname');
+    script.setAttribute('theme', 'github-dark');
+    anchor.appendChild(script);
+  }
+
+  useEffect(() => {
+    const time = handleTimeToRead();
     setTimeToRead(time);
+    addComments();
   }, []);
 
   return (
     <div className={commonStyles.container}>
       <Header />
+      {preview && (
+        <aside>
+          <Link href="/api/exit-preview">
+            <a>Sair do modo Preview</a>
+          </Link>
+        </aside>
+      )}
       <img className={styles.banner} src={post?.data?.banner?.url} alt="" />
       <main className={commonStyles.content}>
         <article className={styles.post}>
@@ -87,6 +123,26 @@ export default function Post({ post }: PostProps): JSX.Element {
               <span>
                 <FiClock /> {timeToRead} min
               </span>
+              {post.first_publication_date !== post.last_publication_date && (
+                <span className={styles.edited}>
+                  * editado em
+                  <time>
+                    {format(
+                      new Date(post?.last_publication_date),
+                      ' dd MMM yyyy',
+                      {
+                        locale: ptBR,
+                      }
+                    )}
+                  </time>
+                  , às
+                  <time>
+                    {format(new Date(post?.last_publication_date), ' HH:mm', {
+                      locale: ptBR,
+                    })}
+                  </time>
+                </span>
+              )}
               {post.data?.content?.map(part => {
                 return (
                   <div key={part.heading}>
@@ -103,6 +159,33 @@ export default function Post({ post }: PostProps): JSX.Element {
             </div>
           </div>
         </article>
+        <div className={styles.postNavigation}>
+          <div>
+            {!prevPost ? (
+              <></>
+            ) : (
+              <Link href={`/post/${prevPost.uid}`}>
+                <a>
+                  <span>{prevPost.data.title}</span>
+                  <strong> Post anterior </strong>
+                </a>
+              </Link>
+            )}
+          </div>
+          <div>
+            {!nextPost ? (
+              <></>
+            ) : (
+              <Link href={`/post/${nextPost.uid}`}>
+                <a>
+                  <span>{nextPost.data.title}</span>
+                  <strong> Próximo post </strong>
+                </a>
+              </Link>
+            )}
+          </div>
+        </div>
+        <div id="inject-comments-for-uterances"></div>
       </main>
     </div>
   );
@@ -135,10 +218,16 @@ export const getStaticPaths: GetStaticPaths = async () => {
   // TODO
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getStaticProps: GetStaticProps = async ({
+  params,
+  preview = false,
+  previewData,
+}) => {
   const { slug } = params;
   const prismic = getPrismicClient();
-  const response = await prismic.getByUID('posts', String(slug), {});
+  const response = await prismic.getByUID('posts', String(slug), {
+    ref: previewData?.ref ?? null,
+  });
   if (!response) {
     return {
       redirect: {
@@ -148,15 +237,42 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     };
   }
   // console.log(JSON.stringify(response, null, 2))
-  const contents = response.data.content.map(content => {
-    return {
-      heading: content.heading,
-      body: RichText.asHtml(content.body),
-    };
-  });
+
+  const nextPostResponse = await prismic.query(
+    [
+      Prismic.Predicates.at('document.type', 'posts'),
+      Prismic.Predicates.dateAfter(
+        'document.first_publication_date',
+        response.first_publication_date
+      ),
+    ],
+    { pageSize: 1 }
+  );
+
+  const [nextPost] =
+    !nextPostResponse || nextPostResponse.total_results_size !== 1
+      ? [null]
+      : nextPostResponse.results;
+
+  const prevPostResponse = await prismic.query(
+    [
+      Prismic.Predicates.at('document.type', 'posts'),
+      Prismic.Predicates.dateBefore(
+        'document.first_publication_date',
+        response.first_publication_date
+      ),
+    ],
+    { pageSize: 1 }
+  );
+
+  const [prevPost] =
+    !prevPostResponse || prevPostResponse.total_results_size !== 1
+      ? [null]
+      : prevPostResponse.results;
 
   const post = {
     first_publication_date: response.first_publication_date,
+    last_publication_date: response.last_publication_date,
     uid: response.uid,
     data: {
       title: response.data.title,
@@ -172,6 +288,9 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   return {
     props: {
       post,
+      preview,
+      prevPost,
+      nextPost,
     },
   };
   // TODO

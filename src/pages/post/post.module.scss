@@ -15,6 +15,12 @@
       & + span{
         margin-left: 1.5rem;
       }
+
+    }
+    .edited{
+      display: block;
+      margin-left: 0;
+      margin-top: 0.5rem;
     }
   }
   h2{
@@ -44,4 +50,41 @@
   }
 
 
+}
+.postNavigation{
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.09);
+  margin:2rem auto;
+  padding-top:2rem;
+
+  div{
+    display: flex;
+    &:first-child{
+      a{
+        align-items: flex-start;
+      }
+
+    }
+    &:last-child{
+      a{
+        align-items: flex-end;
+      }
+
+    }
+  }
+  a{
+    display:flex;
+    flex-direction: column;
+
+
+
+    span{
+      font-size: 1.1rem;
+    }
+    strong{
+      margin-top: 0.5rem;
+      color: var(--pink-100);
+    }
+  }
 }
